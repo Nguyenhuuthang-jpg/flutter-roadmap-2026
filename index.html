@@ -4,58 +4,41 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Flutter Roadmap 2026</title>
-  <meta name="description" content="Lộ trình học Flutter, cập nhật theo Flutter 3.50 và Dart 3.14 (11/2026).">
+  <meta name="description" content="Sơ đồ lộ trình học Flutter, cập nhật theo Flutter 3.50 và Dart 3.14 (11/2026).">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="hero">
-    <div class="wrap">
-      <div class="brand">
-        <span class="logo" aria-hidden="true">◆</span>
-        <span>Flutter Roadmap</span>
-      </div>
-      <h1>Lộ trình học Flutter</h1>
-      <p class="sub">
-        Cập nhật theo <strong>Flutter 3.50</strong> &amp; <strong>Dart 3.14</strong> (11/2026).
-        Dựa trên <a href="https://github.com/olexale/flutter_roadmap" target="_blank" rel="noopener">olexale/flutter_roadmap</a>.
-      </p>
-
-      <div class="toolbar">
-        <input id="search" type="search" placeholder="Tìm chủ đề, package, công cụ…" aria-label="Tìm kiếm">
-        <div class="filters" role="group" aria-label="Lọc">
-          <button class="chip active" data-filter="all">Tất cả</button>
-          <button class="chip" data-filter="new">Mới</button>
-          <button class="chip" data-filter="deprecated">Lỗi thời</button>
-          <button class="chip" data-filter="todo">Chưa học</button>
+  <header class="top">
+    <div class="top-inner">
+      <div class="brand"><span class="logo" aria-hidden="true">◆</span>Flutter Roadmap <span class="ver">3.50 · Dart 3.14</span></div>
+      <div class="top-right">
+        <div class="overall" title="Tiến độ chung">
+          <div class="bar"><span id="bar-fill"></span></div>
+          <span id="progress-text">0%</span>
         </div>
-        <button id="theme" class="icon-btn" aria-label="Đổi giao diện sáng/tối">◐</button>
-      </div>
-
-      <div class="progress">
-        <div class="bar"><span id="bar-fill"></span></div>
-        <span id="progress-text">0 / 0 đã học</span>
+        <button id="theme" class="icon-btn" aria-label="Đổi giao diện sáng/tối">🌓</button>
       </div>
     </div>
   </header>
 
-  <main class="wrap">
-    <section class="updates" aria-label="Thay đổi quan trọng">
-      <h2>Điểm mới cần biết</h2>
-      <ul id="updates"></ul>
-    </section>
+  <div class="layout">
+    <main class="map-wrap">
+      <h1>Lộ trình học Flutter</h1>
+      <p class="hint">Bấm vào một ô trên sơ đồ để xem tài liệu.</p>
+      <div id="map" class="map" role="list"></div>
+    </main>
 
-    <nav class="toc" aria-label="Mục lục"><ol id="toc"></ol></nav>
+    <aside id="panel" class="panel" aria-live="polite">
+      <div id="panel-body"></div>
+    </aside>
+  </div>
 
-    <div id="roadmap"></div>
-    <p id="empty" class="empty" hidden>Không tìm thấy mục nào phù hợp.</p>
-  </main>
+  <div id="scrim" class="scrim" hidden></div>
 
-  <footer class="wrap foot">
-    <p>
-      <span class="tag new">Mới</span> thêm hoặc cập nhật năm 2025–2026 ·
-      <span class="tag deprecated">Lỗi thời</span> không còn khuyến nghị, kèm lựa chọn thay thế.
-      Tiến độ học được lưu trong trình duyệt của bạn.
-    </p>
+  <footer class="foot">
+    Dựa trên <a href="https://github.com/olexale/flutter_roadmap" target="_blank" rel="noopener">olexale/flutter_roadmap</a> ·
+    <span class="tag new">Mới</span> cập nhật 2025–2026 ·
+    <span class="tag deprecated">Lỗi thời</span> không còn khuyến nghị
   </footer>
 
   <script src="script.js"></script>
