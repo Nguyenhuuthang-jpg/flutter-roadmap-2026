@@ -1,14 +1,25 @@
-// Flutter Roadmap 2026 — dữ liệu và giao diện
+// Flutter Roadmap 2026 — sơ đồ lộ trình
 // status: "new" = thêm/cập nhật 2025–2026, "deprecated" = không còn khuyến nghị
 
-const UPDATES = [
-  "<strong>Flutter 3.50 + Dart 3.14</strong> (11/2026): gọi API native trực tiếp (FFIgen/JNIgen) đã ổn định; package <code>material_ui</code> / <code>cupertino_ui</code> là mặc định cho dự án mới.",
-  "<strong>Swift Package Manager</strong> là mặc định cho iOS/macOS từ Flutter 3.44. CocoaPods trunk chuyển sang chỉ đọc từ 2/12/2026.",
-  "<strong>Web:</strong> <code>dart:html</code>, <code>dart:js</code>, <code>package:js</code> đã bị deprecate; dùng <code>dart:js_interop</code> + <code>package:web</code>. WebAssembly là hướng build chính.",
-  "<strong>Dart 3.x:</strong> records, patterns, sealed class, dot shorthands (3.10), primary constructors (3.12).",
-  "<strong>Isar</strong> gốc đã ngừng phát triển; dùng <code>isar_community</code> hoặc Drift / ObjectBox. <strong>App Center</strong> đã ngừng, phần Analytics chỉ còn hỗ trợ đến 3/2027.",
-  "<strong>AI:</strong> Dart &amp; Flutter MCP Server, Agentic Hot Reload, Genkit cho Dart (preview), Firebase AI Logic."
+// Điểm mới, hiển thị ngắn gọn ở ô "Có gì mới"
+const NEWS = [
+  { icon: "🚀", title: "Flutter 3.50 · Dart 3.14", text: "Phát hành 11/2026. Gọi API native trực tiếp đã ổn định." },
+  { icon: "🎨", title: "material_ui & cupertino_ui", text: "Material và Cupertino tách thành package riêng." },
+  { icon: "🍎", title: "Swift Package Manager", text: "Mặc định từ 3.44. CocoaPods chỉ đọc từ 2/12/2026." },
+  { icon: "🌐", title: "Web: js_interop + Wasm", text: "dart:html, package:js đã bị deprecate." },
+  { icon: "🎯", title: "Dart 3.x", text: "Records, patterns, sealed class, dot shorthands, primary constructors." },
+  { icon: "🤖", title: "AI", text: "MCP Server, Agentic Hot Reload, Genkit, Firebase AI Logic." },
+  { icon: "⚠️", title: "Đã ngừng", text: "Isar gốc, App Center, Travis CI (.org), Zapp!" }
 ];
+
+// Biểu tượng cho từng chủ đề
+const ICONS = {
+  env: "🛠️", dart: "🎯", widgets: "🧩", design: "🎨", principles: "📐",
+  arch: "🏗️", network: "🌐", storage: "🔑", db: "🗄️",
+  testing: "🧪", perf: "⚡", internals: "🔬",
+  native: "📱", packages: "📦", web: "💻",
+  ai: "🤖", security: "🛡️", ci: "🔁", analytics: "📊", store: "🏪"
+};
 
 const STAGES = [
   {
@@ -280,121 +291,166 @@ function save(key, value) {
 }
 
 const done = new Set(load(STORE_KEY, []));
-let filter = "all";
-let query = "";
+let activeId = null;
 
-// ---------- Render ----------
 const $ = (s) => document.querySelector(s);
-const escapeHtml = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const keyOf = (topicId, item) => `${topicId}:${item.name}`;
+const learnable = (t) => t.items.filter((it) => it.status !== "deprecated");
 
-function tagHtml(status) {
-  if (status === "new") return '<span class="tag new">Mới</span>';
-  if (status === "deprecated") return '<span class="tag deprecated">Lỗi thời</span>';
-  return "";
+// Tra cứu nhanh: id chủ đề -> { topic, stage, stageIndex }
+const TOPICS = {};
+STAGES.forEach((stage, si) => stage.topics.forEach((topic) => { TOPICS[topic.id] = { topic, stage, si }; }));
+
+function topicProgress(t) {
+  const list = learnable(t);
+  const n = list.filter((it) => done.has(keyOf(t.id, it))).length;
+  return { n, total: list.length };
 }
 
-function renderStatic() {
-  $("#updates").innerHTML = UPDATES.map((u) => `<li>${u}</li>`).join("");
-  $("#toc").innerHTML = STAGES.flatMap((s) => s.topics)
-    .map((t) => `<li><a href="#${t.id}">${escapeHtml(t.title)}</a></li>`).join("");
+// ---------- Sơ đồ ----------
+function nodeHtml(id, icon, label, meta, extra = "") {
+  return `<button class="node ${extra}" data-id="${id}" role="listitem">
+    <span class="ico" aria-hidden="true">${icon}</span>
+    <span class="label">${esc(label)}</span>
+    <span class="meta">${meta}</span>
+  </button>`;
 }
 
-function matches(topic, item) {
-  if (filter === "new" && item.status !== "new") return false;
-  if (filter === "deprecated" && item.status !== "deprecated") return false;
-  if (filter === "todo" && (done.has(keyOf(topic.id, item)) || item.status === "deprecated")) return false;
-  if (!query) return true;
-  const hay = `${item.name} ${item.desc || ""} ${topic.title}`.toLowerCase();
-  return hay.includes(query);
+function row(side, inner) {
+  const left = side === "left" ? inner : "";
+  const right = side === "right" ? inner : "";
+  return `<div class="row"><div class="slot left">${left}</div><span class="dot"></span><div class="slot right">${right}</div></div>`;
 }
 
-function renderRoadmap() {
-  let html = "";
-  let visible = 0;
+function renderMap() {
+  let html = `<div class="milestone"><span>Bắt đầu</span></div>`;
+  html += row("right", nodeHtml("news", "✨", "Có gì mới 2026", `${NEWS.length}`, "special"));
 
-  STAGES.forEach((stage, i) => {
-    let stageHtml = "";
-    stage.topics.forEach((topic) => {
-      const items = topic.items.filter((it) => matches(topic, it));
-      if (!items.length) return;
-      visible += items.length;
-      const list = items.map((it) => {
-        const k = keyOf(topic.id, it);
-        const isDone = done.has(k);
-        const name = it.url
-          ? `<a class="name" href="${it.url}" target="_blank" rel="noopener">${escapeHtml(it.name)}</a>`
-          : `<span class="name">${escapeHtml(it.name)}</span>`;
-        const box = it.status === "deprecated"
-          ? "<span></span>"
-          : `<input type="checkbox" data-key="${escapeHtml(k)}" ${isDone ? "checked" : ""} aria-label="Đã học ${escapeHtml(it.name)}">`;
-        return `<li class="item ${isDone ? "done" : ""}">${box}<div>${name}${tagHtml(it.status)}<span class="desc">${escapeHtml(it.desc || "")}</span></div></li>`;
-      }).join("");
-      const open = query || filter !== "all" ? "open" : (i < 2 ? "open" : "");
-      stageHtml += `
-        <details class="topic" id="${topic.id}" ${open}>
-          <summary>${escapeHtml(topic.title)} <span class="count">${items.length} mục</span></summary>
-          ${topic.note ? `<p class="topic-note">${escapeHtml(topic.note)}</p>` : ""}
-          <ul class="items">${list}</ul>
-        </details>`;
+  let side = 0;
+  STAGES.forEach((stage, si) => {
+    html += `<div class="milestone"><span><span class="num">${si + 1}</span>${esc(stage.title)}</span></div>`;
+    stage.topics.forEach((t) => {
+      const { n, total } = topicProgress(t);
+      const complete = total > 0 && n === total;
+      const meta = complete ? "✓" : `${n}/${total}`;
+      html += row(side++ % 2 ? "right" : "left",
+        nodeHtml(t.id, ICONS[t.id] || "•", t.title, meta, complete ? "complete" : ""));
     });
-    if (stageHtml) {
-      html += `
-        <section class="stage">
-          <h2 class="stage-title"><span class="num">${i + 1}</span>${escapeHtml(stage.title)}</h2>
-          <p class="stage-desc">${escapeHtml(stage.desc)}</p>
-          ${stageHtml}
-        </section>`;
-    }
   });
 
-  $("#roadmap").innerHTML = html;
-  $("#empty").hidden = visible > 0;
-  updateProgress();
+  html += `<div class="milestone end"><span>Sẵn sàng phát hành 🎉</span></div>`;
+  $("#map").innerHTML = html;
+  markActive();
 }
 
-function updateProgress() {
-  const all = STAGES.flatMap((s) => s.topics.flatMap((t) =>
-    t.items.filter((it) => it.status !== "deprecated").map((it) => keyOf(t.id, it))));
-  const count = all.filter((k) => done.has(k)).length;
-  $("#bar-fill").style.width = `${all.length ? (count / all.length) * 100 : 0}%`;
-  $("#progress-text").textContent = `${count} / ${all.length} đã học`;
+function markActive() {
+  document.querySelectorAll(".node").forEach((n) => n.classList.toggle("active", n.dataset.id === activeId));
+}
+
+// ---------- Khung chi tiết ----------
+function closeBtn() {
+  return `<button class="icon-btn p-close" data-close aria-label="Đóng">✕</button>`;
+}
+
+function renderPanel() {
+  const body = $("#panel-body");
+
+  if (!activeId) {
+    body.innerHTML = `<div class="empty-state"><div class="big">🗺️</div>
+      <p>Chọn một ô trên sơ đồ để xem tài liệu và đánh dấu những gì bạn đã học.</p></div>`;
+    return;
+  }
+
+  if (activeId === "news") {
+    body.innerHTML = `
+      <div class="p-head"><span class="ico">✨</span>
+        <div><div class="p-stage">Cập nhật 11/2026</div><h2 class="p-title">Có gì mới</h2></div>${closeBtn()}</div>
+      <ul class="news">${NEWS.map((x) => `<li><span class="n-ico">${x.icon}</span><div><b>${esc(x.title)}</b><span>${esc(x.text)}</span></div></li>`).join("")}</ul>`;
+    return;
+  }
+
+  const { topic, stage, si } = TOPICS[activeId];
+  const { n, total } = topicProgress(topic);
+  const links = topic.items.map((it) => {
+    const k = keyOf(topic.id, it);
+    const isDone = done.has(k);
+    const old = it.status === "deprecated";
+    const name = it.url
+      ? `<a class="name" href="${esc(it.url)}" target="_blank" rel="noopener">${esc(it.name)}</a>`
+      : `<span class="name">${esc(it.name)}</span>`;
+    const tag = it.status === "new" ? `<span class="tag new">Mới</span>` : old ? `<span class="tag deprecated">Lỗi thời</span>` : "";
+    const box = old ? `<span></span>` : `<input type="checkbox" data-key="${esc(k)}" ${isDone ? "checked" : ""} aria-label="Đã học ${esc(it.name)}">`;
+    return `<li class="link ${isDone ? "done" : ""} ${old ? "old" : ""}">${box}<div>${name}${tag}${it.desc ? `<span class="desc">${esc(it.desc)}</span>` : ""}</div></li>`;
+  }).join("");
+
+  body.innerHTML = `
+    <div class="p-head"><span class="ico">${ICONS[topic.id] || "•"}</span>
+      <div><div class="p-stage">Giai đoạn ${si + 1} · ${esc(stage.title)}</div><h2 class="p-title">${esc(topic.title)}</h2></div>${closeBtn()}</div>
+    <div class="p-progress"><div class="bar"><span style="width:${total ? (n / total) * 100 : 0}%"></span></div>${n}/${total}</div>
+    ${topic.note ? `<p class="p-note">${esc(topic.note)}</p>` : ""}
+    <ul class="links">${links}</ul>`;
+}
+
+function updateOverall() {
+  let n = 0, total = 0;
+  Object.values(TOPICS).forEach(({ topic }) => { const p = topicProgress(topic); n += p.n; total += p.total; });
+  const pct = total ? Math.round((n / total) * 100) : 0;
+  $("#bar-fill").style.width = pct + "%";
+  $("#progress-text").textContent = `${pct}%`;
+}
+
+// ---------- Mở / đóng ----------
+const isMobile = () => matchMedia("(max-width: 900px)").matches;
+
+function openTopic(id) {
+  activeId = id;
+  markActive();
+  renderPanel();
+  $("#panel").scrollTop = 0;
+  if (isMobile()) { $("#panel").classList.add("open"); $("#scrim").hidden = false; }
+}
+
+function closePanel() {
+  $("#panel").classList.remove("open");
+  $("#scrim").hidden = true;
+  if (!isMobile()) { activeId = null; markActive(); renderPanel(); }
 }
 
 // ---------- Sự kiện ----------
-$("#roadmap").addEventListener("change", (e) => {
+$("#map").addEventListener("click", (e) => {
+  const node = e.target.closest(".node");
+  if (node) openTopic(node.dataset.id);
+});
+
+$("#panel").addEventListener("click", (e) => {
+  if (e.target.closest("[data-close]")) closePanel();
+});
+
+$("#panel").addEventListener("change", (e) => {
   const key = e.target.dataset.key;
   if (!key) return;
   e.target.checked ? done.add(key) : done.delete(key);
-  e.target.closest(".item").classList.toggle("done", e.target.checked);
   save(STORE_KEY, [...done]);
-  updateProgress();
+  renderPanel();
+  renderMap();
+  updateOverall();
 });
 
-$("#search").addEventListener("input", (e) => {
-  query = e.target.value.trim().toLowerCase();
-  renderRoadmap();
-});
+$("#scrim").addEventListener("click", closePanel);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closePanel(); });
 
-document.querySelectorAll(".chip").forEach((chip) => {
-  chip.addEventListener("click", () => {
-    document.querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
-    chip.classList.add("active");
-    filter = chip.dataset.filter;
-    renderRoadmap();
-  });
-});
-
-function applyTheme(theme) {
-  document.documentElement.dataset.theme = theme;
-}
-const savedTheme = load(THEME_KEY, null);
-applyTheme(savedTheme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+function applyTheme(theme) { document.documentElement.dataset.theme = theme; }
+applyTheme(load(THEME_KEY, null) || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
 $("#theme").addEventListener("click", () => {
   const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
   applyTheme(next);
   save(THEME_KEY, next);
 });
 
-renderStatic();
-renderRoadmap();
+// Khởi tạo: trên máy tính mở sẵn ô đầu tiên để khung bên cạnh không trống
+renderMap();
+if (!isMobile()) activeId = "news";
+markActive();
+renderPanel();
+updateOverall();
